@@ -1,14 +1,20 @@
 package hmapi
 
+type method string
+
+func (t method) String() string {
+	return string(t)
+}
+
 type MediaType string
 
 func (t MediaType) String() string {
 	return string(t)
 }
 
-type method string
+type scheme string
 
-func (t method) String() string {
+func (t scheme) String() string {
 	return string(t)
 }
 
@@ -28,9 +34,7 @@ const (
 	MediaTypeJSON              = MediaType("application/json8")
 	MediaTypeTextPlain         = MediaType("text/plain")
 	MediaTypeMultipartFormData = MediaType(`multipart/form-data;boundary="hmapi_boundry_E58FCE5B6201466A8A9A6ECCDFBD31D3"`)
-)
 
-const (
 	DELETE  = method("DELETE")
 	GET     = method("GET")
 	HEAD    = method("HEAD")
@@ -38,8 +42,9 @@ const (
 	PATCH   = method("PATCH")
 	POST    = method("POST")
 	PUT     = method("PUT")
-)
 
-const (
+	HTTP  = scheme("http")
+	HTTPS = scheme("https") 
+
 	MultipartFormDataBoundry string = "hmapi_boundry_E58FCE5B6201466A8A9A6ECCDFBD31D3"
 )

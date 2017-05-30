@@ -5,3 +5,5 @@ type Link struct {
 	Type     MediaType `json:"type,omitempty"`
 	Encoding MediaType `json:"encoding,omitempty"`
 }
+
+type LinkRequest interface{}
