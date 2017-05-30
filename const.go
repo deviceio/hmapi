@@ -6,6 +6,12 @@ func (t MediaType) String() string {
 	return string(t)
 }
 
+type method string
+
+func (t method) String() string {
+	return string(t)
+}
+
 const (
 	MediaTypeHMAPI             = MediaType("application/vnd.hmapi+json")
 	MediaTypeHMAPIBoolean      = MediaType("application/vnd.hmapi.Bool")
@@ -24,6 +30,16 @@ const (
 	MediaTypeMultipartFormData = MediaType(`multipart/form-data;boundary="hmapi_boundry_E58FCE5B6201466A8A9A6ECCDFBD31D3"`)
 )
 
-var (
+const (
+	DELETE  = method("DELETE")
+	GET     = method("GET")
+	HEAD    = method("HEAD")
+	OPTIONS = method("OPTIONS")
+	PATCH   = method("PATCH")
+	POST    = method("POST")
+	PUT     = method("PUT")
+)
+
+const (
 	MultipartFormDataBoundry string = "hmapi_boundry_E58FCE5B6201466A8A9A6ECCDFBD31D3"
 )
