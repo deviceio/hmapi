@@ -10,29 +10,54 @@ type Client interface {
 	Resource(path string) ResourceRequest
 }
 
-type client struct {
-	baseuri    string
-	httpclient *http.Client
-	host       string
-	port       int
-	auth       Auth
+type ClientConfig struct {
+	Auth       Auth
+	Host       string
+	HTTPClient *http.Client
+	Port       int
+	Scheme     scheme
 }
 
-func NewClient(scheme scheme, host string, port int, auth Auth) Client {
-	if auth == nil {
-		auth = &AuthNone{}
+type client struct {
+	baseuri string
+	config  *ClientConfig
+}
+
+func NewClient(config *ClientConfig) Client {
+	if config.Auth == nil {
+		config.Auth = &AuthNone{}
 	}
 
-	return &client{
-		baseuri: fmt.Sprintf("%v://%v:%v", string(scheme), host, port),
-		httpclient: &http.Client{
+	if string(config.Scheme) == "" {
+		config.Scheme = HTTP
+	}
+
+	if config.Host == "" {
+		config.Host = "localhost"
+	}
+
+	if config.Port == 0 {
+		config.Port = 80
+	}
+
+	if config.HTTPClient == nil {
+		config.HTTPClient = &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: true,
 				},
 			},
-		},
-		auth: auth,
+		}
+	}
+
+	return &client{
+		baseuri: fmt.Sprintf(
+			"%v://%v:%v",
+			config.Scheme.String(),
+			config.Host,
+			config.Port,
+		),
+		config: config,
 	}
 }
 
@@ -44,6 +69,6 @@ func (t *client) Resource(path string) ResourceRequest {
 }
 
 func (t *client) do(r *http.Request) (*http.Response, error) {
-	t.auth.Sign(r)
-	return t.httpclient.Do(r)
+	t.config.Auth.Sign(r)
+	return t.config.HTTPClient.Do(r)
 }

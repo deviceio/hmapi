@@ -1,14 +1,14 @@
 package hmapi
 
-type method string
-
-func (t method) String() string {
-	return string(t)
-}
-
 type MediaType string
 
 func (t MediaType) String() string {
+	return string(t)
+}
+
+type method string
+
+func (t method) String() string {
 	return string(t)
 }
 
@@ -19,7 +19,7 @@ func (t scheme) String() string {
 }
 
 const (
-	MediaTypeHMAPI             = MediaType("application/vnd.hmapi+json")
+	MediaTypeHMAPIResource     = MediaType("application/vnd.hmapi.Resource+json")
 	MediaTypeHMAPIBoolean      = MediaType("application/vnd.hmapi.Bool")
 	MediaTypeHMAPIFloat32      = MediaType("application/vnd.hmapi.Float32")
 	MediaTypeHMAPIFloat64      = MediaType("application/vnd.hmapi.Float64")
@@ -44,7 +44,7 @@ const (
 	PUT     = method("PUT")
 
 	HTTP  = scheme("http")
-	HTTPS = scheme("https") 
+	HTTPS = scheme("https")
 
 	MultipartFormDataBoundry string = "hmapi_boundry_E58FCE5B6201466A8A9A6ECCDFBD31D3"
 )
