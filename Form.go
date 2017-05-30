@@ -13,5 +13,6 @@ type FormField struct {
 	Type     MediaType   `json:"type,omitempty"`
 	Encoding MediaType   `json:"encoding,omitempty"`
 	Required bool        `json:"required"`
+	Multiple bool        `json:"multiple"`
 	Value    interface{} `json:"value,omitempty"`
 }
