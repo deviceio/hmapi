@@ -15,7 +15,7 @@ type ClientConfig struct {
 	Host       string
 	HTTPClient *http.Client
 	Port       int
-	Scheme     scheme
+	Scheme     *scheme
 }
 
 type client struct {
@@ -24,12 +24,12 @@ type client struct {
 }
 
 func NewClient(config *ClientConfig) Client {
-	if config.Auth == nil {
-		config.Auth = &AuthNone{}
+	if config.Scheme == nil {
+		config.Scheme = HTTP
 	}
 
-	if string(config.Scheme) == "" {
-		config.Scheme = HTTP
+	if config.Auth == nil {
+		config.Auth = &AuthNone{}
 	}
 
 	if config.Host == "" {

@@ -40,7 +40,7 @@ func (t *resourceRequest) Content(name string) ContentRequest {
 }
 
 func (t *resourceRequest) Get() (*Resource, error) {
-	request, err := http.NewRequest("GET", t.client.baseuri+t.path, nil)
+	request, err := http.NewRequest(GET.String(), t.client.baseuri+t.path, nil)
 
 	if err != nil {
 		return nil, err
