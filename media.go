@@ -13,7 +13,7 @@ const (
 	MediaTypeHMAPIUInt32       = MediaType("application/vnd.hmapi.UInt32")
 	MediaTypeHMAPIUInt64       = MediaType("application/vnd.hmapi.UInt64")
 	MediaTypeOctetStream       = MediaType("application/octet-stream")
-	MediaTypeJSON              = MediaType("application/json8")
+	MediaTypeJSON              = MediaType("application/json")
 	MediaTypeTextPlain         = MediaType("text/plain")
 	MediaTypeMultipartFormData = MediaType(`multipart/form-data;boundary="hmapi_boundry_E58FCE5B6201466A8A9A6ECCDFBD31D3"`)
 )

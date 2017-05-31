@@ -5,17 +5,17 @@ import (
 	"net/http"
 )
 
-type Resource struct {
-	Links   map[string]*Link    `json:"links,omitempty"`
-	Forms   map[string]*Form    `json:"forms,omitempty"`
-	Content map[string]*Content `json:"content,omitempty"`
-}
-
 type ResourceRequest interface {
 	Get() (*Resource, error)
 	Form(name string) FormRequest
 	Link(name string) LinkRequest
 	Content(name string) ContentRequest
+}
+
+type Resource struct {
+	Links   map[string]*Link    `json:"links,omitempty"`
+	Forms   map[string]*Form    `json:"forms,omitempty"`
+	Content map[string]*Content `json:"content,omitempty"`
 }
 
 type resourceRequest struct {
