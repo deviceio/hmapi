@@ -21,7 +21,7 @@ type FormResponse interface {
 
 type Form struct {
 	Action  string       `json:"action,omitempty"`
-	Method  *method      `json:"method"`
+	Method  method       `json:"method"`
 	Type    MediaType    `json:"type,omitempty"`
 	Enctype MediaType    `json:"enctype,omitempty"`
 	Fields  []*FormField `json:"fields,omitempty"`
@@ -89,15 +89,10 @@ func (t *formRequest) Submit() (FormResponse, error) {
 		}
 	}
 
-	method := hmform.Method
 	bodyr, bodyw := io.Pipe()
 
-	if method == nil {
-		method = GET
-	}
-
 	request, err := http.NewRequest(
-		method.String(),
+		hmform.Method.String(),
 		t.resource.client.baseuri+hmform.Action,
 		bodyr,
 	)

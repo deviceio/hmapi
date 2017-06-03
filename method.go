@@ -1,19 +1,19 @@
 package hmapi
 
-var (
-	DELETE  = &method{"DELETE"}
-	GET     = &method{"GET"}
-	HEAD    = &method{"HEAD"}
-	OPTIONS = &method{"OPTIONS"}
-	PATCH   = &method{"PATCH"}
-	POST    = &method{"POST"}
-	PUT     = &method{"PUT"}
-)
-
-type method struct {
-	string
-}
+type method string
 
 func (t method) String() string {
-	return t.string
+	return string(t)
 }
+
+const (
+	CONNECT = method("CONNECT")
+	DELETE  = method("DELETE")
+	GET     = method("GET")
+	HEAD    = method("HEAD")
+	OPTIONS = method("OPTIONS")
+	PATCH   = method("PATCH")
+	POST    = method("POST")
+	PUT     = method("PUT")
+	TRACE   = method("TRACE")
+)
