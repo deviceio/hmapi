@@ -32,7 +32,10 @@ func (t *resourceRequest) Form(name string) FormRequest {
 }
 
 func (t *resourceRequest) Link(name string) LinkRequest {
-	return nil
+	return &linkRequest{
+		name:     name,
+		resource: t,
+	}
 }
 
 func (t *resourceRequest) Content(name string) ContentRequest {
