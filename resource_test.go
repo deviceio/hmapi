@@ -1,6 +1,7 @@
 package hmapi
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -11,6 +12,8 @@ import (
 
 	"net"
 
+	"strings"
+
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -18,6 +21,24 @@ import (
 
 type Test_ResourceRequest_when_calling_get struct {
 	suite.Suite
+}
+
+func (t *Test_ResourceRequest_when_calling_get) Test_request_successfully_canceled() {
+	objects := t.getTestServerAndClient()
+	defer objects.Server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	objects.Mux.HandleFunc("/whatever", func(rw http.ResponseWriter, r *http.Request) {
+		cancel() // we cancel the ctx here to simulate a request already in flight
+		rw.WriteHeader(http.StatusOK)
+	})
+
+	res, err := objects.Client.Resource("/whatever").Get(ctx)
+
+	assert.Nil(t.T(), res)
+	assert.NotNil(t.T(), err)
+	assert.True(t.T(), strings.Contains(err.Error(), "context canceled"))
 }
 
 func (t *Test_ResourceRequest_when_calling_get) Test_returns_error_when_non_http_200_response() {
@@ -28,7 +49,7 @@ func (t *Test_ResourceRequest_when_calling_get) Test_returns_error_when_non_http
 		rw.WriteHeader(http.StatusInternalServerError)
 	})
 
-	resource, err := ret.Client.Resource("/resource").Get()
+	resource, err := ret.Client.Resource("/resource").Get(context.Background())
 
 	assert.Nil(t.T(), resource)
 	assert.NotNil(t.T(), err)
@@ -47,7 +68,7 @@ func (t *Test_ResourceRequest_when_calling_get) Test_returns_error_when_failed_j
 		rw.Write([]byte("{some invalid json"))
 	})
 
-	resource, err := ret.Client.Resource("/resource").Get()
+	resource, err := ret.Client.Resource("/resource").Get(context.Background())
 
 	assert.Nil(t.T(), resource)
 	assert.NotNil(t.T(), err)
@@ -70,7 +91,7 @@ func (t *Test_ResourceRequest_when_calling_get) Test_returns_minimal_resource() 
 		json.NewEncoder(rw).Encode(resource)
 	})
 
-	resource, err := ret.Client.Resource("/resource").Get()
+	resource, err := ret.Client.Resource("/resource").Get(context.Background())
 
 	assert.NotNil(t.T(), resource)
 	assert.Nil(t.T(), err)

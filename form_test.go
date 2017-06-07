@@ -1,6 +1,7 @@
 package hmapi
 
 import (
+	"context"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -8,6 +9,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 
 	"net/http"
@@ -19,6 +21,53 @@ import (
 
 type Test_FormRequest_when_calling_submit struct {
 	suite.Suite
+}
+
+func (t *Test_FormRequest_when_calling_submit) Test_submission_canceled_successfully() {
+	objects := t.getTestServerAndClient()
+	defer objects.Server.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	objects.Mux.HandleFunc("/resource/test", func(rw http.ResponseWriter, r *http.Request) {
+		cancel() // we cancel the ctx here to simulate a request already in flight
+		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte("response"))
+	}).Methods("POST")
+
+	objects.Mux.HandleFunc("/resource", func(rw http.ResponseWriter, r *http.Request) {
+		b, err := json.Marshal(&Resource{
+			Forms: map[string]*Form{
+				"test": &Form{
+					Action:  "/resource/test",
+					Method:  POST,
+					Enctype: MediaTypeMultipartFormData,
+					Type:    "none",
+					Fields: []*FormField{
+						&FormField{
+							Name:     "foo",
+							Type:     MediaTypeHMAPIString,
+							Required: true,
+						},
+					},
+				},
+			},
+		})
+
+		if err != nil {
+			assert.FailNow(t.T(), "error marshal json", err)
+			return
+		}
+
+		rw.WriteHeader(http.StatusOK)
+		rw.Write(b)
+	}).Methods("GET")
+
+	resp, err := objects.Client.Resource("/resource").Form("test").AddFieldAsString("foo", "test").Submit(ctx)
+
+	assert.Nil(t.T(), resp)
+	assert.NotNil(t.T(), err)
+	assert.True(t.T(), strings.Contains(err.Error(), "context canceled"))
 }
 
 func (t *Test_FormRequest_when_calling_submit) Test_multipart_form_successfully_submitted() {
@@ -74,17 +123,13 @@ func (t *Test_FormRequest_when_calling_submit) Test_multipart_form_successfully_
 		rw.Write(b)
 	}).Methods("GET")
 
-	submission := ret.Client.Resource("/resource").Form("test").AddFieldAsString("foo", "test").Submit()
+	resp, err := ret.Client.Resource("/resource").Form("test").AddFieldAsString("foo", "test").Submit(context.Background())
 
-	<-submission.Done()
+	assert.Nil(t.T(), err)
+	assert.NotNil(t.T(), resp)
+	assert.Equal(t.T(), http.StatusOK, resp.StatusCode)
 
-	assert.Nil(t.T(), submission.Err())
-	assert.NotNil(t.T(), submission.Response())
-	assert.Equal(t.T(), http.StatusOK, submission.Response().StatusCode)
-
-	respbody, _ := ioutil.ReadAll(submission.Response().Body)
-
-	log.Println(respbody)
+	respbody, _ := ioutil.ReadAll(resp.Body)
 
 	assert.Equal(t.T(), "response", string(respbody))
 }
@@ -97,7 +142,6 @@ func (t *Test_FormRequest_when_calling_submit) getTestServerAndClient() (ret str
 	Client Client
 }) {
 	mux := mux.NewRouter()
-	http.Handle("/", mux)
 	svr := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		log.Println("TEST SVR REQUEST", r)
 		mux.ServeHTTP(rw, r)

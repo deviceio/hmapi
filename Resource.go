@@ -1,12 +1,13 @@
 package hmapi
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 )
 
 type ResourceRequest interface {
-	Get() (*Resource, error)
+	Get(context.Context) (*Resource, error)
 	Form(name string) FormRequest
 	Link(name string) LinkRequest
 	Content(name string) ContentRequest
@@ -42,12 +43,14 @@ func (t *resourceRequest) Content(name string) ContentRequest {
 	return &contentRequest{}
 }
 
-func (t *resourceRequest) Get() (*Resource, error) {
+func (t *resourceRequest) Get(ctx context.Context) (*Resource, error) {
 	request, err := http.NewRequest(GET.String(), t.client.baseuri+t.path, nil)
 
 	if err != nil {
 		return nil, err
 	}
+
+	request = request.WithContext(ctx)
 
 	resp, err := t.client.do(request)
 

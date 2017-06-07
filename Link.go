@@ -1,6 +1,7 @@
 package hmapi
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -14,7 +15,7 @@ type Link struct {
 }
 
 type LinkRequest interface {
-	Get() (LinkResponse, error)
+	Get(context.Context) (LinkResponse, error)
 }
 
 type LinkResponse interface {
@@ -27,8 +28,8 @@ type linkRequest struct {
 	resource *resourceRequest
 }
 
-func (t *linkRequest) Get() (LinkResponse, error) {
-	res, err := t.resource.Get()
+func (t *linkRequest) Get(ctx context.Context) (LinkResponse, error) {
+	res, err := t.resource.Get(ctx)
 
 	if err != nil {
 		return nil, err

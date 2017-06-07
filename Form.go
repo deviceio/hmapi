@@ -2,6 +2,7 @@ package hmapi
 
 import (
 	"context"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,7 +15,7 @@ type FormRequest interface {
 	AddFieldAsBool(name string, value bool) FormRequest
 	AddFieldAsOctetStream(name string, value io.Reader) FormRequest
 	AddFieldAsInt(name string, value int) FormRequest
-	Submit() FormSubmission
+	Submit(ctx context.Context) (*http.Response, error)
 }
 
 type FormSubmission interface {
@@ -45,29 +46,6 @@ type formRequest struct {
 	name     string
 	fields   []*formField
 	resource *resourceRequest
-}
-
-type formSubmission struct {
-	httpResponse *http.Response
-	err          error
-	ctx          context.Context
-	cancel       context.CancelFunc
-}
-
-func (t *formSubmission) Response() *http.Response {
-	return t.httpResponse
-}
-
-func (t *formSubmission) Err() error {
-	return t.err
-}
-
-func (t *formSubmission) Cancel() {
-	t.cancel()
-}
-
-func (t *formSubmission) Done() <-chan struct{} {
-	return t.ctx.Done()
 }
 
 type formField struct {
@@ -106,37 +84,20 @@ func (t *formRequest) AddFieldAsInt(name string, value int) FormRequest {
 	return t
 }
 
-func (t *formRequest) Submit() FormSubmission {
-	ctx, ctxcancel := context.WithCancel(context.Background())
-
-	submission := &formSubmission{
-		ctx:    ctx,
-		cancel: ctxcancel,
-	}
-
-	go t.submit(submission)
-
-	return submission
-}
-
-func (t *formRequest) submit(submission *formSubmission) {
-	hmres, err := t.resource.Get()
+func (t *formRequest) Submit(ctx context.Context) (retresp *http.Response, reterr error) {
+	hmres, err := t.resource.Get(ctx)
 
 	if err != nil {
-		submission.err = err
-		submission.cancel()
-		return
+		return nil, err
 	}
 
 	hmform, ok := hmres.Forms[t.name]
 
 	if !ok {
-		submission.err = &ErrResourceNoSuchForm{
+		return nil, &ErrResourceNoSuchForm{
 			FormName: t.name,
 			Resource: t.resource.path,
 		}
-		submission.cancel()
-		return
 	}
 
 	bodyr, bodyw := io.Pipe()
@@ -148,22 +109,18 @@ func (t *formRequest) submit(submission *formSubmission) {
 	)
 
 	if err != nil {
-		submission.err = err
-		submission.cancel()
-		return
+		return nil, err
 	}
 
-	request = request.WithContext(submission.ctx)
+	request = request.WithContext(ctx)
 
 	switch hmform.Enctype {
 	case MediaTypeMultipartFormData:
 		request.Header.Set("Content-Type", MediaTypeMultipartFormData.String())
 	default:
-		submission.err = &ErrUnsupportedMediaType{
+		return nil, &ErrUnsupportedMediaType{
 			MediaType: hmform.Enctype,
 		}
-		submission.cancel()
-		return
 	}
 
 	chresp := make(chan *http.Response)
@@ -179,7 +136,7 @@ func (t *formRequest) submit(submission *formSubmission) {
 	go func() {
 		switch hmform.Enctype {
 		case MediaTypeMultipartFormData:
-			t.writeMultipartForm(bodyw, hmform, submission, chformerr)
+			t.writeMultipartForm(bodyw, hmform, chformerr)
 			bodyw.Close()
 		}
 	}()
@@ -188,36 +145,47 @@ waitforcomplete:
 	for {
 		select {
 		case formerr := <-chformerr:
-			submission.err = formerr
+			reterr = formerr
+
 		case resperr := <-chresperr:
-			submission.err = resperr
+			reterr = resperr
+
 		case resp := <-chresp:
-			submission.httpResponse = resp
+			retresp = resp
 			break waitforcomplete
-		case <-submission.ctx.Done():
+
+		case <-ctx.Done():
+			reterr = ctx.Err()
 			break waitforcomplete
 		}
 	}
 
-	submission.cancel() //done
+	return retresp, reterr
 }
 
-func (t *formRequest) writeMultipartForm(writer io.Writer, form *Form, submission *formSubmission, cherr chan error) {
+func (t *formRequest) writeMultipartForm(writer io.Writer, form *Form, cherr chan error) {
 	mpwriter := multipart.NewWriter(writer)
 	mpwriter.SetBoundary(MultipartFormDataBoundry)
 	defer mpwriter.Close()
 
 	for _, field := range t.fields {
-		select {
-		case <-submission.ctx.Done():
-			return
-		default:
-		}
-
 		switch field.mediaType {
 		case MediaTypeOctetStream:
-			fieldwriter, _ := mpwriter.CreateFormField(field.name)
-			if _, err := io.Copy(fieldwriter, field.value.(io.Reader)); err != nil {
+			fieldreader, ok := field.value.(io.Reader)
+
+			if !ok {
+				cherr <- errors.New("octetstream field is not a io.Reader")
+				return
+			}
+
+			fieldwriter, err := mpwriter.CreateFormField(field.name)
+
+			if err != nil {
+				cherr <- err
+				return
+			}
+
+			if _, err = io.Copy(fieldwriter, fieldreader); err != nil {
 				cherr <- err
 				return
 			}
