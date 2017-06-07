@@ -37,7 +37,7 @@ func (t *linkRequest) Get() (LinkResponse, error) {
 	hmlink, ok := res.Links[t.name]
 
 	if !ok {
-		return nil, &LinkNotFound{
+		return nil, &ErrResourceNoSuchLink{
 			LinkName: t.name,
 			Resource: t.resource.path,
 		}
