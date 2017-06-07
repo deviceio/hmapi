@@ -13,6 +13,7 @@ type FormRequest interface {
 	AddFieldAsString(name string, value string) FormRequest
 	AddFieldAsBool(name string, value bool) FormRequest
 	AddFieldAsOctetStream(name string, value io.Reader) FormRequest
+	AddFieldAsInt(name string, value int) FormRequest
 	Submit() FormSubmission
 }
 
